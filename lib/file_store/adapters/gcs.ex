@@ -1,6 +1,6 @@
-defmodule FileStoreGcs do
+defmodule FileStore.Adapters.GCS do
   @moduledoc """
-  Documentation for FileStoreGcs.
+  Documentation for FileStore.Adapters.GCS.
   """
 
   @doc """
@@ -8,7 +8,7 @@ defmodule FileStoreGcs do
 
   ## Examples
 
-      iex> FileStoreGcs.hello()
+      iex> FileStore.Adapters.GCS.hello()
       :world
 
   """

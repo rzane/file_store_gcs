@@ -1,4 +1,4 @@
-defmodule FileStoreGcs.MixProject do
+defmodule FileStore.Adapters.GCS.MixProject do
   use Mix.Project
 
   def project do
