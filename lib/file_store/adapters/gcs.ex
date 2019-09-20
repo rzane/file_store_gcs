@@ -1,22 +1,32 @@
 defmodule FileStore.Adapters.GCS do
   @behaviour FileStore.Adapter
 
-  alias FileStore.Adapters.GCS.Request
+  alias FileStore.Adapters.GCS.Client
+  alias FileStore.Adapters.GCS.Upload
 
   @impl true
   def write(store, key, content) do
-    bucket = store |> get_bucket() |> encode()
-
     store
-    |> Request.new()
-    |> Request.put_path("/upload/storage/v1/b/#{bucket}/o")
-    |> Request.put_query(uploadType: "media", name: key)
-    |> Request.put_body(content)
-    |> Request.ok()
+    |> build_client()
+    |> Client.write(get_bucket(store), key, content)
+    |> case do
+      {:ok, _} -> :ok
+      {:error, resp} -> {:error, resp}
+    end
   end
 
-  defp encode(component) do
-    URI.encode(component, &URI.char_unreserved?/1)
+  @impl true
+  def upload(store, path, key) do
+    store
+    |> build_client()
+    |> Upload.perform(get_bucket(store), path, key)
+  end
+
+  defp build_client(store) do
+    store.config
+    |> Map.take([:base_url, :scope])
+    |> Map.to_list()
+    |> Client.new()
   end
 
   defp get_bucket(store) do
