@@ -23,6 +23,7 @@ defmodule FileStore.Adapters.GCS.MixProject do
     [
       {:goth, ">= 0.0.0"},
       {:httpoison, ">= 0.0.0"},
+      {:jason, ">= 0.0.0"},
       {:file_store, path: "../file_store"}
     ]
   end

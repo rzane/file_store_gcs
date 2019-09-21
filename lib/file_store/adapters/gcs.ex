@@ -8,7 +8,7 @@ defmodule FileStore.Adapters.GCS do
   def write(store, key, content) do
     store
     |> build_client()
-    |> Client.write(get_bucket(store), key, content)
+    |> Client.insert_object(get_bucket(store), key, content)
     |> case do
       {:ok, _} -> :ok
       {:error, resp} -> {:error, resp}
