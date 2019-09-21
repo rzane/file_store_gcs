@@ -52,24 +52,13 @@ defmodule FileStore.Adapters.GCS.Client do
     %__MODULE__{client | headers: client.headers ++ headers}
   end
 
-  def request(%__MODULE__{body: body, headers: headers, scope: scope} = client, method) do
-    with {:ok, %{token: token}} <- Goth.Token.for_scope(scope) do
-      headers = headers ++ [{"authorization", "Bearer #{token}"}]
+  def request(%__MODULE__{body: body} = client, method) do
+    url = build_url(client)
 
-      method
-      |> HTTPoison.request(build_url(client), body, headers)
-      |> process_response()
-    end
+    with {:ok, headers} <- build_headers(client),
+         {:ok, resp} <- HTTPoison.request(method, url, body, headers),
+         do: transform(resp)
   end
-
-  defp process_response({:error, resp}), do: {:error, resp}
-
-  defp process_response({:ok, %{status_code: code} = resp})
-       when code < 200 or code > 399 do
-    {:error, resp}
-  end
-
-  defp process_response({:ok, resp}), do: {:ok, resp}
 
   defp build_url(%__MODULE__{base_url: base_url, path: path, query: query}) do
     base_url
@@ -79,6 +68,16 @@ defmodule FileStore.Adapters.GCS.Client do
     |> URI.to_string()
   end
 
+  defp build_headers(%__MODULE__{scope: :anonymous, headers: headers}) do
+    {:ok, headers}
+  end
+
+  defp build_headers(%__MODULE__{scope: scope, headers: headers}) do
+    with {:ok, %{token: token}} <- Goth.Token.for_scope(scope) do
+      {:ok, headers ++ [{"authorization", "Bearer #{token}"}]}
+    end
+  end
+
   defp objects_path(bucket) do
     "/upload/storage/v1/b/#{encode(bucket)}/o"
   end
@@ -86,4 +85,7 @@ defmodule FileStore.Adapters.GCS.Client do
   defp encode(component) do
     URI.encode(component, &URI.char_unreserved?/1)
   end
+
+  defp transform(%{status_code: code} = resp) when code in 200..299, do: {:ok, resp}
+  defp transform(resp), do: {:error, resp}
 end
