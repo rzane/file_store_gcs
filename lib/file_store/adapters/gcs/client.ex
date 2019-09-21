@@ -36,23 +36,23 @@ defmodule FileStore.Adapters.GCS.Client do
     |> request(:put)
   end
 
-  def put_path(client, path) do
+  defp put_path(client, path) do
     %__MODULE__{client | path: path}
   end
 
-  def put_body(client, body) do
+  defp put_body(client, body) do
     %__MODULE__{client | body: body}
   end
 
-  def put_query(client, query) do
+  defp put_query(client, query) do
     %__MODULE__{client | query: client.query ++ query}
   end
 
-  def put_headers(client, headers) do
+  defp put_headers(client, headers) do
     %__MODULE__{client | headers: client.headers ++ headers}
   end
 
-  def request(%__MODULE__{body: body} = client, method) do
+  defp request(%__MODULE__{body: body} = client, method) do
     url = build_url(client)
 
     with {:ok, headers} <- build_headers(client),
