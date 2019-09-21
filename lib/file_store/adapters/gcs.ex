@@ -24,7 +24,7 @@ defmodule FileStore.Adapters.GCS do
 
   defp build_client(store) do
     store.config
-    |> Map.take([:base_url, :scope])
+    |> Map.take([:base_url, :scope, :options])
     |> Map.to_list()
     |> Client.new()
   end

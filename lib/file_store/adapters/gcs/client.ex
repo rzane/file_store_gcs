@@ -5,6 +5,7 @@ defmodule FileStore.Adapters.GCS.Client do
             path: "/",
             query: [],
             headers: [],
+            options: [],
             base_url: "https://www.googleapis.com/",
             scope: "https://www.googleapis.com/auth/devstorage.read_write"
 
@@ -27,13 +28,22 @@ defmodule FileStore.Adapters.GCS.Client do
     |> request(:post)
   end
 
-  def upload_part(client, bucket, upload_id, body, headers) do
-    client
-    |> put_path(objects_path(bucket))
-    |> put_query(uploadType: "resumable", upload_id: upload_id)
-    |> put_headers(headers)
-    |> put_body(body)
-    |> request(:put)
+  def resume_upload(%__MODULE__{options: options} = client, url, body, opts \\ []) do
+    chunk_size = byte_size(body)
+    size = Keyword.get(opts, :size, "*")
+    start_byte = Keyword.get(opts, :start_byte, 0)
+    end_byte = start_byte + chunk_size - 1
+
+    upload_headers = [
+      {"Content-Length", chunk_size},
+      {"Content-Range", "bytes #{start_byte}-#{end_byte}/#{size}"}
+    ]
+
+    with {:ok, headers} <- build_headers(client) do
+      url
+      |> HTTPoison.put(body, headers ++ upload_headers, options)
+      |> normalize()
+    end
   end
 
   defp put_path(client, path) do
@@ -48,16 +58,14 @@ defmodule FileStore.Adapters.GCS.Client do
     %__MODULE__{client | query: client.query ++ query}
   end
 
-  defp put_headers(client, headers) do
-    %__MODULE__{client | headers: client.headers ++ headers}
-  end
-
-  defp request(%__MODULE__{body: body} = client, method) do
+  defp request(%__MODULE__{body: body, options: options} = client, method) do
     url = build_url(client)
 
-    with {:ok, headers} <- build_headers(client),
-         {:ok, resp} <- HTTPoison.request(method, url, body, headers),
-         do: transform(resp)
+    with {:ok, headers} <- build_headers(client) do
+      method
+      |> HTTPoison.request(url, body, headers, options)
+      |> normalize()
+    end
   end
 
   defp build_url(%__MODULE__{base_url: base_url, path: path, query: query}) do
@@ -86,6 +94,6 @@ defmodule FileStore.Adapters.GCS.Client do
     URI.encode(component, &URI.char_unreserved?/1)
   end
 
-  defp transform(%{status_code: code} = resp) when code in 200..299, do: {:ok, resp}
-  defp transform(resp), do: {:error, resp}
+  defp normalize({:ok, %{status_code: code} = resp}) when code in 200..299, do: {:ok, resp}
+  defp normalize({_, resp}), do: {:error, resp}
 end
