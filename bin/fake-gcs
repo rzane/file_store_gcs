@@ -1,13 +1,21 @@
 #!/bin/bash
+#
+# Runs a fake GCS at https://localhost:4443 and creates
+# a storage bucket called `file-store`.
 
 set -e
 
-data=$(mktemp -d)
-storage=$(mktemp -d)
+rm -rf tmp/
+mkdir tmp/
+mkdir tmp/storage
+mkdir tmp/data
+mkdir tmp/data/file-store
+touch tmp/data/file-store/example.txt
 
 docker run \
-  -v "$storage:/storage" \
-  -v "$data:/data" \
+  -v "$(pwd)/tmp/storage:/storage" \
+  -v "$(pwd)/tmp/data:/data" \
   --name fake-gcs \
-  --rm -p 4443:4443 \
+  --rm \
+  -p 4443:4443 \
   fsouza/fake-gcs-server

@@ -2,12 +2,12 @@ defmodule FileStore.Adapters.GCS.Test do
   use ExUnit.Case
   alias FileStore.Adapters.GCS, as: Adapter
 
-  @bucket "my-private-bucket-for-upload"
   @key "test"
   @content "hello world"
   @path "test/fixtures/test.mp4"
 
-  @store FileStore.new(adapter: Adapter, bucket: @bucket)
+  @config Application.fetch_env!(:file_store_gcs, :test)
+  @store FileStore.new(@config)
 
   test "write/3" do
     assert :ok = Adapter.write(@store, @key, @content)

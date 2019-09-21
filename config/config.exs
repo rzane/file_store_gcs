@@ -2,8 +2,18 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
-config :goth,
-  json: {:system, "GCS_CREDENTIALS"}
+if System.get_env("GCS_CREDENTIALS") do
+  config :goth, json: {:system, "GCS_CREDENTIALS"}
+else
+  config :goth, disabled: true
+end
+
+config :file_store_gcs, :test,
+  adapter: FileStore.Adapters.GCS,
+  bucket: "file-store",
+  base_url: "https://localhost:4443",
+  scope: :anonymous,
+  options: [hackney: [:insecure]]
 
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
