@@ -11,35 +11,20 @@ defmodule FileStore.Adapters.GCS.Upload do
          {:ok, url} <- fetch_header(resp.headers, "location") do
       path
       |> File.stream!([], @chunk_size)
-      |> reduce_while_ok(0, fn body, start_byte ->
+      |> Enum.reduce_while({:ok, 0}, fn body, {:ok, start_byte} ->
         opts = [start_byte: start_byte, size: size]
 
-        with {:ok, resp} <- Client.resume_upload(client, url, body, opts),
-             {:ok, end_byte} <- fetch_range_end(resp.headers) do
-          {:ok, end_byte + 1}
+        case Client.resume_upload(client, url, body, opts) do
+          {:ok, response} ->
+            {:ok, range} = fetch_header(response.headers, "range")
+            [_, range_end] = Regex.run(~r"bytes=\d+-(\d+)", range)
+            {range_end, _} = Integer.parse(range_end)
+            {:cont, {:ok, range_end + 1}}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
         end
       end)
-    end
-  end
-
-  defp reduce_while_ok(enumerable, initial, fun) do
-    Enum.reduce_while(enumerable, {:ok, initial}, fn value, {:ok, acc} ->
-      case fun.(value, acc) do
-        {:ok, next_value} -> {:cont, {:ok, next_value}}
-        {:error, error} -> {:halt, {:error, error}}
-      end
-    end)
-  end
-
-  defp fetch_range_end(headers) do
-    with {:ok, range} <- fetch_header(headers, "range") do
-      {end_byte, _} =
-        range
-        |> String.split("-")
-        |> Enum.at(1)
-        |> Integer.parse()
-
-      {:ok, end_byte}
     end
   end
 
@@ -47,8 +32,8 @@ defmodule FileStore.Adapters.GCS.Upload do
     headers
     |> Enum.find(fn {key, _} -> String.downcase(key) == name end)
     |> case do
-      nil -> {:error, {:missing_header, name}}
       {_, value} -> {:ok, value}
+      nil -> {:error, {:missing_header, name}}
     end
   end
 end

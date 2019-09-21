@@ -14,7 +14,6 @@ defmodule FileStore.Adapters.GCS.Test do
   end
 
   test "upload/3" do
-    assert {:ok, data} = Adapter.upload(@store, @path, @key)
-    assert data == %{}
+    assert :ok = Adapter.upload(@store, @path, @key)
   end
 end

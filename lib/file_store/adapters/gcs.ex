@@ -20,6 +20,10 @@ defmodule FileStore.Adapters.GCS do
     store
     |> build_client()
     |> Upload.perform(get_bucket(store), path, key)
+    |> case do
+      {:ok, _} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   defp build_client(store) do

@@ -40,9 +40,7 @@ defmodule FileStore.Adapters.GCS.Client do
     ]
 
     with {:ok, headers} <- build_headers(client) do
-      url
-      |> HTTPoison.put(body, headers ++ upload_headers, options)
-      |> normalize()
+      HTTPoison.put(url, body, headers ++ upload_headers, options)
     end
   end
 
