@@ -8,24 +8,29 @@ defmodule FileStore.Adapters.GCS.Upload do
   def perform(client, bucket, path, key) do
     with {:ok, %{size: size}} <- File.stat(path),
          {:ok, resp} <- Client.start_upload(client, bucket, key),
-         {:ok, url} <- fetch_header(resp.headers, "location") do
-      path
-      |> File.stream!([], @chunk_size)
-      |> Enum.reduce_while({:ok, 0}, fn body, {:ok, start_byte} ->
-        opts = [start_byte: start_byte, size: size]
-
-        case Client.resume_upload(client, url, body, opts) do
-          {:ok, response} ->
-            {:ok, range} = fetch_header(response.headers, "range")
-            [_, range_end] = Regex.run(~r"bytes=\d+-(\d+)", range)
-            {range_end, _} = Integer.parse(range_end)
-            {:cont, {:ok, range_end + 1}}
-
-          {:error, reason} ->
-            {:halt, {:error, reason}}
-        end
-      end)
+         {:ok, url} <- fetch_header(resp.headers, "location"),
+         {:ok, bytes} <- do_upload(client, url, path, size) do
+      {:ok, bytes}
     end
+  end
+
+  defp do_upload(client, url, path, size) do
+    path
+    |> File.stream!([], @chunk_size)
+    |> Enum.reduce_while({:ok, 0}, fn body, {:ok, start_byte} ->
+      opts = [start_byte: start_byte, size: size]
+
+      case Client.resume_upload(client, url, body, opts) do
+        {:ok, response} ->
+          {:ok, range} = fetch_header(response.headers, "range")
+          [_, range_end] = Regex.run(~r"bytes=\d+-(\d+)", range)
+          {range_end, _} = Integer.parse(range_end)
+          {:cont, {:ok, range_end + 1}}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+      end
+    end)
   end
 
   defp fetch_header(headers, name) do

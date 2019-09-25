@@ -1,4 +1,4 @@
-defmodule FileStore.Adapters.GCS.Test do
+defmodule FileStore.Adapters.GCSTest do
   use ExUnit.Case
   alias FileStore.Adapters.GCS, as: Adapter
 
