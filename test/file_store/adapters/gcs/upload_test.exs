@@ -6,11 +6,17 @@ defmodule FileStore.Adapters.GCS.UploadTest do
   @config Application.fetch_env!(:file_store_gcs, :test)
   @client Client.new(@config)
   @bucket Keyword.fetch!(@config, :bucket)
+
   @key "gcs-upload-test"
   @path "test/fixtures/test.mp4"
+  @size 10498677
+  @checksum "798ce2689035bc7ed07c1f9bf75f754c"
 
   test "uploading a file" do
-    assert {:ok, 10498677} = Upload.perform(@client, @bucket, @path, @key)
+    assert {:ok, stat} = Upload.perform(@client, @bucket, @path, @key)
+    assert stat.key == @key
+    assert stat.size == @size
+    assert stat.etag == @checksum
   end
 
   test "gracefully handles %File.Error{}" do

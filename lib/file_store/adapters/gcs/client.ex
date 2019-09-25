@@ -20,7 +20,7 @@ defmodule FileStore.Adapters.GCS.Client do
   def resume_upload(client, url, body, opts \\ []) do
     chunk_size = byte_size(body)
     size = Keyword.get(opts, :size, "*")
-    range_start = Keyword.get(opts, :start_byte, 0)
+    range_start = Keyword.get(opts, :offset, 0)
     range_end = range_start + chunk_size - 1
     range = "bytes #{range_start}-#{range_end}/#{size}"
     headers = [{"Content-Length", chunk_size}, {"Content-Range", range}]
