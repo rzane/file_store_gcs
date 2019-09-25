@@ -12,6 +12,8 @@ defmodule FileStore.Adapters.GCS.Upload do
          {:ok, bytes} <- do_upload(client, url, path, size) do
       {:ok, bytes}
     end
+  rescue
+    e in [File.Error] -> {:error, e.reason}
   end
 
   defp do_upload(client, url, path, size) do
