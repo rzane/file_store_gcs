@@ -3,6 +3,7 @@ defmodule FileStore.Adapters.GCS do
 
   alias FileStore.Adapters.GCS.Client
   alias FileStore.Adapters.GCS.Upload
+  alias FileStore.Adapters.GCS.Download
 
   @impl true
   def write(store, key, content) do
@@ -24,6 +25,13 @@ defmodule FileStore.Adapters.GCS do
       {:ok, _} -> :ok
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  @impl true
+  def download(store, key, dest) do
+    store
+    |> build_client()
+    |> Download.perform(get_bucket(store), key, dest)
   end
 
   defp build_client(store) do
