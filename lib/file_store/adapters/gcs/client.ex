@@ -7,6 +7,10 @@ defmodule FileStore.Adapters.GCS.Client do
     struct(__MODULE__, opts)
   end
 
+  def get_object(client, bucket, key) do
+    request(client, :get, "/storage/v1/b/#{encode(bucket)}/o/#{encode(key)}")
+  end
+
   def insert_object(client, bucket, key, content) do
     query = [uploadType: "media", name: key]
     request(client, :post, upload_path(bucket), body: content, query: query)
@@ -21,11 +25,19 @@ defmodule FileStore.Adapters.GCS.Client do
     request(client, :put, url, Keyword.put(opts, :body, body))
   end
 
+  def download_chunk(client, bucket, key, opts \\ []) do
+    request(client, :get, download_path(bucket, key), opts)
+  end
+
+  defp download_path(bucket, key) do
+    "/download/storage/v1/b/#{encode(bucket)}/o/#{encode(key)}?alt=media"
+  end
+
   defp upload_path(bucket) do
     "/upload/storage/v1/b/#{encode(bucket)}/o"
   end
 
-  defp request(client, method, path, opts) do
+  defp request(client, method, path, opts \\ []) do
     headers = Keyword.get(opts, :headers, [])
     query = Keyword.get(opts, :query, [])
     body = Keyword.get(opts, :body, "")

@@ -19,6 +19,7 @@ defmodule FileStore.Adapters.GCSTest do
   end
 
   test "download/3" do
+    File.rm_rf!(@dest)
     assert :ok = Adapter.upload(@store, @path, @key)
     assert :ok = Adapter.download(@store, @key, @dest)
     assert File.exists?(@dest)

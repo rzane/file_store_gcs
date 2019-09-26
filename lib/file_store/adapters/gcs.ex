@@ -29,9 +29,15 @@ defmodule FileStore.Adapters.GCS do
 
   @impl true
   def download(store, key, dest) do
-    store
-    |> build_client()
-    |> Download.perform(get_bucket(store), key, dest)
+    with {:ok, file} <- File.open(dest, [:write, :delayed_write, :binary]) do
+      store
+      |> build_client()
+      |> Download.perform(get_bucket(store), key, file)
+      |> case do
+        :ok -> File.close(file)
+        {:error, error} -> {:error, error}
+      end
+    end
   end
 
   defp build_client(store) do
