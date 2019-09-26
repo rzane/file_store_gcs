@@ -9,31 +9,26 @@ defmodule FileStore.Adapters.GCS.Client do
 
   def insert_object(client, bucket, key, content) do
     query = [uploadType: "media", name: key]
-    request(client, :post, upload_path(bucket), content, query: query)
+    request(client, :post, upload_path(bucket), body: content, query: query)
   end
 
   def start_upload(client, bucket, key) do
     query = [uploadType: "resumable", name: key]
-    request(client, :post, upload_path(bucket), "", query: query)
+    request(client, :post, upload_path(bucket), query: query)
   end
 
   def resume_upload(client, url, body, opts \\ []) do
-    chunk_size = byte_size(body)
-    size = Keyword.get(opts, :size, "*")
-    range_start = Keyword.get(opts, :offset, 0)
-    range_end = range_start + chunk_size - 1
-    range = "bytes #{range_start}-#{range_end}/#{size}"
-    headers = [{"Content-Length", chunk_size}, {"Content-Range", range}]
-    request(client, :put, url, body, headers: headers)
+    request(client, :put, url, Keyword.put(opts, :body, body))
   end
 
   defp upload_path(bucket) do
     "/upload/storage/v1/b/#{encode(bucket)}/o"
   end
 
-  defp request(client, method, path, body, opts) do
+  defp request(client, method, path, opts) do
     headers = Keyword.get(opts, :headers, [])
     query = Keyword.get(opts, :query, [])
+    body = Keyword.get(opts, :body, "")
     url = build_url(client.base_url, path, query)
 
     with {:ok, headers} <- build_headers(client, headers),

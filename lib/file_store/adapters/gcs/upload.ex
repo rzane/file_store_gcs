@@ -21,8 +21,13 @@ defmodule FileStore.Adapters.GCS.Upload do
   defp do_upload(client, url, path, stat) do
     path
     |> File.stream!([], @chunk_size)
-    |> Enum.reduce_while({:ok, {0, stat}}, fn body, {:ok, {offset, stat}} ->
-      case Client.resume_upload(client, url, body, offset: offset, size: stat.size) do
+    |> Enum.reduce_while({:ok, {0, stat}}, fn body, {:ok, {range_start, stat}} ->
+      chunk_size = byte_size(body)
+      range_end = range_start + chunk_size - 1
+      range = "bytes #{range_start}-#{range_end}/#{stat.size}"
+      headers = [{"Content-Length", chunk_size}, {"Content-Range", range}]
+
+      case Client.resume_upload(client, url, body, headers: headers) do
         {:ok, response} ->
           etag = parse_etag(response)
           offset = parse_offset(response)
