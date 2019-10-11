@@ -9,16 +9,20 @@ defmodule FileStore.Adapters.GCS.Download do
       size
       |> chunk_stream(@chunk_size)
       |> Task.async_stream(&download_chunk(client, bucket, key, io, &1), @stream_options)
-      |> Stream.run()
+      |> Enum.reduce(:ok, &collect_result/2)
     end
   end
+
+  defp collect_result({:error, reason}, {:error, reasons}), do: {:error, reasons ++ [reason]}
+  defp collect_result({:error, reason}, :ok), do: {:error, [reason]}
+  defp collect_result(:ok, :ok), do: :ok
 
   defp download_chunk(client, bucket, key, io, {start_byte, end_byte}) do
     headers = [{"range", "bytes=#{start_byte}-#{end_byte}"}]
 
     case Client.download_chunk(client, bucket, key, headers: headers) do
       {:ok, %HTTPoison.Response{body: body}} ->
-        :file.pwrite(io, [body])
+        IO.binwrite(io, body)
 
       {:error, reason} ->
         {:error, reason}
