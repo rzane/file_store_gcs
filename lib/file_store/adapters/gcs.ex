@@ -83,8 +83,26 @@ defmodule FileStore.Adapters.GCS do
       error -> {:error, error}
     end
 
-    def copy(_store, _src, _dest), do: {:error, :unsupported}
-    def rename(_store, _src, _dest), do: {:error, :unsupported}
+    def copy(store, src, dest) do
+      connection = build_connection(store)
+
+      with {:ok, _} <-
+             Objects.storage_objects_copy(
+               connection,
+               store.bucket,
+               src,
+               store.bucket,
+               dest
+             ),
+           do: :ok
+    end
+
+    def rename(store, src, dest) do
+      with :ok <- copy(store, src, dest),
+           :ok <- delete(store, src),
+           do: :ok
+    end
+
     def get_public_url(_store, key, _opts \\ []), do: key
     def get_signed_url(_store, _key, _opts \\ []), do: {:error, :unsupported}
 
