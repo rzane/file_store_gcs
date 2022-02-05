@@ -104,17 +104,17 @@ defmodule FileStore.AdapterCase do
 
       describe "delete_all/2 conformance" do
         test "deletes all files", %{store: store} do
-          assert :ok = FileStore.write(store, "foo", "")
-          assert :ok = FileStore.write(store, "bar/buzz", "")
+          assert :ok = FileStore.write(store, "foo", "x")
+          assert :ok = FileStore.write(store, "bar/buzz", "x")
           assert :ok = FileStore.delete_all(store)
           assert {:error, _} = FileStore.stat(store, "foo")
           assert {:error, _} = FileStore.stat(store, "bar/buzz")
         end
 
         test "deletes files under prefix", %{store: store} do
-          assert :ok = FileStore.write(store, "foo", "")
-          assert :ok = FileStore.write(store, "bar/buzz", "")
-          assert :ok = FileStore.write(store, "bar/baz", "")
+          assert :ok = FileStore.write(store, "foo", "x")
+          assert :ok = FileStore.write(store, "bar/buzz", "x")
+          assert :ok = FileStore.write(store, "bar/baz", "x")
           assert :ok = FileStore.delete_all(store, prefix: "bar")
           assert {:ok, _} = FileStore.stat(store, "foo")
           assert {:error, _} = FileStore.stat(store, "bar/buzz")

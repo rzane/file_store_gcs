@@ -70,7 +70,19 @@ defmodule FileStore.Adapters.GCS do
       end
     end
 
-    def delete_all(_store, _opts \\ []), do: {:error, :unsupported}
+    def delete_all(store, opts \\ []) do
+      store
+      |> list!(opts)
+      |> Enum.reduce_while(:ok, fn key, :ok ->
+        case delete(store, key) do
+          :ok -> {:cont, :ok}
+          {:error, reason} -> {:halt, {:error, reason}}
+        end
+      end)
+    rescue
+      error -> {:error, error}
+    end
+
     def copy(_store, _src, _dest), do: {:error, :unsupported}
     def rename(_store, _src, _dest), do: {:error, :unsupported}
     def get_public_url(_store, key, _opts \\ []), do: key
