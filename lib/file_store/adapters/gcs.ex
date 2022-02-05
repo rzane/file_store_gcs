@@ -60,7 +60,16 @@ defmodule FileStore.Adapters.GCS do
       end
     end
 
-    def delete(_store, _key), do: {:error, :unsupported}
+    def delete(store, key) do
+      connection = build_connection(store)
+
+      case Api.Objects.storage_objects_delete(connection, store.bucket, key) do
+        {:ok, _} -> :ok
+        {:error, %{status: 404}} -> :ok
+        {:error, response} -> {:error, response}
+      end
+    end
+
     def delete_all(_store, _opts \\ []), do: {:error, :unsupported}
     def copy(_store, _src, _dest), do: {:error, :unsupported}
     def rename(_store, _src, _dest), do: {:error, :unsupported}
