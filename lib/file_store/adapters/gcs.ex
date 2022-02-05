@@ -45,7 +45,21 @@ defmodule FileStore.Adapters.GCS do
 
     def upload(_store, _source, _key), do: {:error, :unsupported}
     def download(_store, _key, _destination), do: {:error, :unsupported}
-    def stat(_store, _key), do: {:error, :unsupported}
+
+    def stat(store, key) do
+      connection = build_connection(store)
+
+      with {:ok, object} <- Api.Objects.storage_objects_get(connection, store.bucket, key) do
+        {:ok,
+         %FileStore.Stat{
+           key: key,
+           type: object.contentType,
+           etag: parse_etag(object.md5Hash),
+           size: String.to_integer(object.size)
+         }}
+      end
+    end
+
     def delete(_store, _key), do: {:error, :unsupported}
     def delete_all(_store, _opts \\ []), do: {:error, :unsupported}
     def copy(_store, _src, _dest), do: {:error, :unsupported}
@@ -53,6 +67,10 @@ defmodule FileStore.Adapters.GCS do
     def get_public_url(_store, key, _opts \\ []), do: key
     def get_signed_url(_store, _key, _opts \\ []), do: {:error, :unsupported}
     def list!(_store, _opts \\ []), do: []
+
+    defp parse_etag(md5hash) do
+      md5hash |> Base.decode64!() |> Base.encode16() |> String.downcase()
+    end
 
     # FIXME: Support authentication via goth
     # FIXME: Figure out how to provide URL at runtime
