@@ -12,7 +12,7 @@ defmodule FileStore.Adapters.GCS do
 
   defimpl FileStore do
     alias GoogleApi.Storage.V1.Connection
-    alias GoogleApi.Storage.V1.Api
+    alias GoogleApi.Storage.V1.Api.Objects
     alias GoogleApi.Storage.V1.Model
 
     def write(store, key, content, opts \\ []) do
@@ -25,7 +25,7 @@ defmodule FileStore.Adapters.GCS do
       }
 
       with {:ok, _} <-
-             Api.Objects.storage_objects_insert_iodata(
+             Objects.storage_objects_insert_iodata(
                connection,
                store.bucket,
                "multipart",
@@ -39,7 +39,7 @@ defmodule FileStore.Adapters.GCS do
       connection = build_connection(store)
 
       with {:ok, %{body: body}} <-
-             Api.Objects.storage_objects_get(connection, store.bucket, key, alt: "media"),
+             Objects.storage_objects_get(connection, store.bucket, key, alt: "media"),
            do: {:ok, body}
     end
 
@@ -49,7 +49,7 @@ defmodule FileStore.Adapters.GCS do
     def stat(store, key) do
       connection = build_connection(store)
 
-      with {:ok, object} <- Api.Objects.storage_objects_get(connection, store.bucket, key) do
+      with {:ok, object} <- Objects.storage_objects_get(connection, store.bucket, key) do
         {:ok,
          %FileStore.Stat{
            key: key,
@@ -63,7 +63,7 @@ defmodule FileStore.Adapters.GCS do
     def delete(store, key) do
       connection = build_connection(store)
 
-      case Api.Objects.storage_objects_delete(connection, store.bucket, key) do
+      case Objects.storage_objects_delete(connection, store.bucket, key) do
         {:ok, _} -> :ok
         {:error, %{status: 404}} -> :ok
         {:error, response} -> {:error, response}
@@ -75,7 +75,41 @@ defmodule FileStore.Adapters.GCS do
     def rename(_store, _src, _dest), do: {:error, :unsupported}
     def get_public_url(_store, key, _opts \\ []), do: key
     def get_signed_url(_store, _key, _opts \\ []), do: {:error, :unsupported}
-    def list!(_store, _opts \\ []), do: []
+
+    # FIXME: Support listing nested keys
+    def list!(store, opts \\ []) do
+      opts = Keyword.take(opts, [:prefix])
+
+      Stream.resource(
+        fn -> nil end,
+        &do_list!(store, &1, opts),
+        fn _ -> nil end
+      )
+      |> Stream.map(& &1.name)
+    end
+
+    defp do_list!(_store, :halt, _opts) do
+      {:halt, nil}
+    end
+
+    defp do_list!(store, page_token, opts) do
+      opts = Keyword.put(opts, :pageToken, page_token)
+
+      store
+      |> build_connection()
+      |> Objects.storage_objects_list(store.bucket, opts)
+      |> case do
+        {:ok, %Model.Objects{items: items, nextPageToken: nil}} ->
+          {items, :halt}
+
+        {:ok, %Model.Objects{items: items, nextPageToken: next_page_token}} ->
+          {items, next_page_token}
+
+        {:error, response} ->
+          # FIXME: Nicer error handling
+          raise "Failed to retrieve object list: #{inspect(response)}"
+      end
+    end
 
     defp parse_etag(md5hash) do
       md5hash |> Base.decode64!() |> Base.encode16() |> String.downcase()

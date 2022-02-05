@@ -144,18 +144,18 @@ defmodule FileStore.AdapterCase do
 
       describe "list!/2 conformance" do
         test "lists keys in the store", %{store: store} do
-          assert :ok = FileStore.write(store, "foo", "")
+          assert :ok = FileStore.write(store, "foo", "x")
           assert "foo" in Enum.to_list(FileStore.list!(store))
         end
 
         test "lists nested keys in the store", %{store: store} do
-          assert :ok = FileStore.write(store, "foo/bar", "")
+          assert :ok = FileStore.write(store, "foo/bar", "x")
           assert "foo/bar" in Enum.to_list(FileStore.list!(store))
         end
 
         test "lists keys matching prefix", %{store: store} do
-          assert :ok = FileStore.write(store, "bar", "")
-          assert :ok = FileStore.write(store, "foo/bar", "")
+          assert :ok = FileStore.write(store, "bar", "x")
+          assert :ok = FileStore.write(store, "foo/bar", "x")
 
           keys = Enum.to_list(FileStore.list!(store, prefix: "foo"))
           refute "bar" in keys
