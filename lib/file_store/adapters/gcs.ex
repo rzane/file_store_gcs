@@ -43,6 +43,17 @@ defmodule FileStore.Adapters.GCS do
            do: {:ok, body}
     end
 
+    def upload(_store, _source, _key), do: {:error, :unsupported}
+    def download(_store, _key, _destination), do: {:error, :unsupported}
+    def stat(_store, _key), do: {:error, :unsupported}
+    def delete(_store, _key), do: {:error, :unsupported}
+    def delete_all(_store, _opts \\ []), do: {:error, :unsupported}
+    def copy(_store, _src, _dest), do: {:error, :unsupported}
+    def rename(_store, _src, _dest), do: {:error, :unsupported}
+    def get_public_url(_store, key, _opts \\ []), do: key
+    def get_signed_url(_store, _key, _opts \\ []), do: {:error, :unsupported}
+    def list!(_store, _opts \\ []), do: []
+
     # FIXME: Support authentication via goth
     # FIXME: Figure out how to provide URL at runtime
     defp build_connection(_store), do: Connection.new()
