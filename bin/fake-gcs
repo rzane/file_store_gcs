@@ -6,11 +6,9 @@
 set -e
 
 rm -rf tmp/
-mkdir tmp/
-mkdir tmp/storage
-mkdir tmp/data
-mkdir tmp/data/file-store
-touch tmp/data/file-store/example.txt
+mkdir -p tmp/storage
+mkdir -p tmp/data/file-store
+echo "hello world" > tmp/data/file-store/example.txt
 
 docker run \
   -v "$(pwd)/tmp/storage:/storage" \

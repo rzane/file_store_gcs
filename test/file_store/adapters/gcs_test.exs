@@ -1,27 +1,23 @@
 defmodule FileStore.Adapters.GCSTest do
-  use ExUnit.Case
-  alias FileStore.Adapters.GCS, as: Adapter
+  use FileStore.AdapterCase
 
-  @key "test"
-  @content "hello world"
-  @path "test/fixtures/test.txt"
-  @dest Path.join(System.tmp_dir!(), "download.txt")
+  alias GoogleApi.Storage.V1.Connection
+  alias GoogleApi.Storage.V1.Api
+  alias GoogleApi.Storage.V1.Model
 
-  @config Application.fetch_env!(:file_store_gcs, :test)
-  @store FileStore.new(@config)
+  @bucket "file-store"
 
-  test "write/3" do
-    assert :ok = Adapter.write(@store, @key, @content)
+  setup do
+    purge_bucket()
+    [store: FileStore.Adapters.GCS.new(bucket: @bucket)]
   end
 
-  test "upload/3" do
-    assert :ok = Adapter.upload(@store, @path, @key)
-  end
+  defp purge_bucket do
+    connection = Connection.new()
+    {:ok, list} = Api.Objects.storage_objects_list(connection, @bucket)
 
-  test "download/3" do
-    File.rm_rf!(@dest)
-    assert :ok = Adapter.upload(@store, "test/fixtures/test.mp4", @key)
-    assert :ok = Adapter.download(@store, @key, @dest)
-    assert File.exists?(@dest)
+    for object <- list.items do
+      {:ok, _} = Api.Objects.storage_objects_delete(connection, @bucket, object.name)
+    end
   end
 end
