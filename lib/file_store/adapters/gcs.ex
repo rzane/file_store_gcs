@@ -111,7 +111,15 @@ defmodule FileStore.Adapters.GCS do
            do: :ok
     end
 
-    def get_public_url(_store, key, _opts \\ []), do: key
+    def get_public_url(store, key, opts \\ []) do
+      url = "https://storage.googleapis.com/#{store.bucket}/#{key}"
+
+      case build_query(opts) do
+        [] -> url
+        query -> url <> "?" <> URI.encode_query(query)
+      end
+    end
+
     def get_signed_url(_store, _key, _opts \\ []), do: {:error, :unsupported}
 
     # FIXME: Support listing nested keys
@@ -147,6 +155,14 @@ defmodule FileStore.Adapters.GCS do
           # FIXME: Nicer error handling
           raise "Failed to retrieve object list: #{inspect(response)}"
       end
+    end
+
+    defp build_query(opts) do
+      opts
+      |> Keyword.take([:content_type, :disposition])
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+      |> FileStore.Utils.rename_key(:content_type, "response-content-type")
+      |> FileStore.Utils.rename_key(:disposition, "response-content-disposition")
     end
 
     defp parse_etag(md5hash) do
