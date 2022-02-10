@@ -87,7 +87,7 @@ defmodule FileStore.Adapters.GCS do
       connection = build_connection(store)
 
       with {:ok, _} <-
-             Objects.storage_objects_copy(
+             Objects.storage_objects_rewrite(
                connection,
                store.bucket,
                src,
@@ -98,16 +98,8 @@ defmodule FileStore.Adapters.GCS do
     end
 
     def rename(store, src, dest) do
-      connection = build_connection(store)
-
-      with {:ok, _} <-
-             Objects.storage_objects_rewrite(
-               connection,
-               store.bucket,
-               src,
-               store.bucket,
-               dest
-             ),
+      with :ok <- copy(store, src, dest),
+           :ok <- delete(store, src),
            do: :ok
     end
 
