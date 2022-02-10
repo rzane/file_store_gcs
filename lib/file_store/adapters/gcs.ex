@@ -84,17 +84,32 @@ defmodule FileStore.Adapters.GCS do
     end
 
     def copy(store, src, dest) do
+      do_copy(store, src, dest, nil)
+    end
+
+    defp do_copy(store, src, dest, token) do
       connection = build_connection(store)
 
-      with {:ok, _} <-
-             Objects.storage_objects_rewrite(
-               connection,
-               store.bucket,
-               src,
-               store.bucket,
-               dest
-             ),
-           do: :ok
+      case Objects.storage_objects_rewrite(
+             connection,
+             store.bucket,
+             src,
+             store.bucket,
+             dest,
+             rewriteToken: token
+           ) do
+        {:ok, %Model.RewriteResponse{rewriteToken: nil}} ->
+          :ok
+
+        {:ok, %Model.RewriteResponse{rewriteToken: ""}} ->
+          :ok
+
+        {:ok, %Model.RewriteResponse{rewriteToken: next_token}} ->
+          do_copy(store, src, dest, next_token)
+
+        {:error, reason} ->
+          {:error, reason}
+      end
     end
 
     def rename(store, src, dest) do
