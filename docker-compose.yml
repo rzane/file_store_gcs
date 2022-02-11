@@ -1,0 +1,13 @@
+services:
+  gcs:
+    image: fsouza/fake-gcs-server:1.34.1
+    ports: ["4443:4443"]
+    healthcheck:
+      timeout: 5s
+      test:
+        - CMD
+        - wget
+        - "--no-verbose"
+        - "--no-check-certificate"
+        - "--tries=1"
+        - https://localhost:4443/storage/v1/b

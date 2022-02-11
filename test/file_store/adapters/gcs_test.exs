@@ -3,19 +3,23 @@ defmodule FileStore.Adapters.GCSTest do
 
   alias GoogleApi.Storage.V1.Connection
   alias GoogleApi.Storage.V1.Api.Objects
+  alias GoogleApi.Storage.V1.Api.Buckets
 
+  @project "project"
   @bucket "file-store"
 
   setup do
-    purge_bucket()
+    prepare_bucket()
     [store: FileStore.Adapters.GCS.new(bucket: @bucket)]
   end
 
-  defp purge_bucket do
+  defp prepare_bucket do
     connection = Connection.new()
-    {:ok, list} = Objects.storage_objects_list(connection, @bucket)
 
-    for object <- list.items do
+    {:ok, _bucket} = Buckets.storage_buckets_insert(connection, @project, body: %{name: @bucket})
+    {:ok, %{items: objects}} = Objects.storage_objects_list(connection, @bucket)
+
+    for object <- objects do
       {:ok, _} = Objects.storage_objects_delete(connection, @bucket, object.name)
     end
   end
