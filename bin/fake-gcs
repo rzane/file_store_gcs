@@ -16,4 +16,4 @@ docker run \
   --name fake-gcs \
   --rm \
   -p 4443:4443 \
-  fsouza/fake-gcs-server
+  fsouza/fake-gcs-server:1.34.1
