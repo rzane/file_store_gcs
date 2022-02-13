@@ -1,10 +1,14 @@
 defmodule FileStore.Adapters.GCS do
-  @enforce_keys [:bucket]
-  defstruct [:bucket]
+  @enforce_keys [:bucket, :goth]
+  defstruct [:bucket, :goth]
 
   def new(opts) do
     if is_nil(opts[:bucket]) do
       raise "missing configuration: :bucket"
+    end
+
+    if is_nil(opts[:goth]) do
+      raise "missing configuration: :goth"
     end
 
     struct(__MODULE__, opts)
@@ -14,6 +18,8 @@ defmodule FileStore.Adapters.GCS do
     alias GoogleApi.Storage.V1.Connection
     alias GoogleApi.Storage.V1.Api.Objects
     alias GoogleApi.Storage.V1.Model
+
+    alias FileStore.Adapters.GCS.Signer
 
     def write(store, key, content, opts \\ []) do
       connection = build_connection(store)
@@ -127,7 +133,15 @@ defmodule FileStore.Adapters.GCS do
       end
     end
 
-    def get_signed_url(_store, _key, _opts \\ []), do: {:error, :unsupported}
+    def get_signed_url(store, key, opts \\ []) do
+      expires_in = Keyword.get(opts, :expires_in, 604_800)
+      expires = DateTime.add(DateTime.utc_now(), expires_in)
+      options = [expires: expires, query_params: build_query(opts)]
+
+      with {:ok, client} <- Signer.detect_client(store.goth) do
+        Signer.sign(client, store.bucket, key, options)
+      end
+    end
 
     # FIXME: Support listing nested keys
     def list!(store, opts \\ []) do

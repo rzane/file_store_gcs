@@ -23,10 +23,11 @@ defmodule FileStore.Adapters.GCS.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:goth, ">= 0.0.0"},
+      {:goth, "~> 1.3-rc"},
       {:hackney, "~> 1.17"},
       {:google_api_storage, "~> 0.33"},
-      {:file_store, path: "../file_store"}
+      {:file_store, path: "../file_store"},
+      {:gcs_signed_url, "~> 0.4"}
     ]
   end
 end

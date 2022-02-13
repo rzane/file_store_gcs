@@ -9,8 +9,20 @@ defmodule FileStore.Adapters.GCSTest do
   @bucket "file-store"
 
   setup do
+    start_supervised!({Goth, name: FileStore.Goth, source: generate_source()})
     prepare_bucket()
-    [store: FileStore.Adapters.GCS.new(bucket: @bucket)]
+    [store: FileStore.Adapters.GCS.new(bucket: @bucket, goth: FileStore.Goth)]
+  end
+
+  defp generate_source do
+    {_, private_key} = generate_private_key()
+    {:service_account, %{"client_email" => "user@example.com", "private_key" => private_key}, []}
+  end
+
+  defp generate_private_key do
+    {:rsa, 2048}
+    |> JOSE.JWK.generate_key()
+    |> JOSE.JWK.to_pem()
   end
 
   defp prepare_bucket do
