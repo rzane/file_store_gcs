@@ -4,12 +4,6 @@ use Mix.Config
 
 config :google_api_storage, base_url: "https://localhost:4443"
 
-if System.get_env("GCS_CREDENTIALS") do
-  config :goth, json: {:system, "GCS_CREDENTIALS"}
-else
-  config :goth, disabled: true
-end
-
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
 # file won't be loaded nor affect the parent project. For this reason,
